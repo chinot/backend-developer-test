@@ -1,0 +1,145 @@
+version: '3.8'
+
+services:
+
+  mysql:
+    build:
+      context: .
+      dockerfile: config/docker/mysql.Dockerfile
+    environment:
+      MYSQL_ROOT_PASSWORD: secret
+      MYSQL_DATABASE: laravel
+      MYSQL_USER: laravel
+      MYSQL_PASSWORD: secret
+    volumes:
+      - './storage/mysql:/var/log/mysql:delegated'
+      - './config/docker/config/mysql:/etc/mysql/conf.d:ro'
+      - 'mysql_data:/var/lib/mysql:delegated'
+    restart: unless-stopped
+    ports:
+      - '3306:3306'
+    networks:
+      - 'network-laravel'
+    container_name: 'laravel-api-mysql'
+
+
+  composer:
+    build:
+      context: .
+      dockerfile: config/docker/composer.Dockerfile
+    volumes:
+      - './:/var/www/html:delegated'
+      - 'composer_cache:/tmp'
+    tty: true
+    network_mode: host
+    container_name: 'laravel-api-composer'
+
+
+
+  npm:
+    platform: linux/amd64
+    build:
+      context: .
+      dockerfile: config/docker/npm.Dockerfile
+    volumes:
+      - './:/var/www/html:delegated'
+      - 'npm_cache:/root/.npm'
+    tty: true
+    network_mode: host
+    container_name: 'laravel-api-npm'
+
+
+
+  phpdbg:
+    build:
+      context: .
+      dockerfile: config/docker/php-dbg.Dockerfile
+    volumes:
+      - './:/var/www/html:delegated'
+    tty: true
+    networks:
+      - 'network-laravel'
+    container_name: 'laravel-api-php-dbg'
+
+
+
+  php:
+    build:
+      context: .
+      dockerfile: config/docker/php-cli.Dockerfile
+    volumes:
+      - './:/var/www/html:delegated'
+    tty: true
+    networks:
+      - 'network-laravel'
+    container_name: 'laravel-api-php-cli'
+
+
+  phpserver:
+    build:
+      context: .
+      dockerfile: config/docker/php-server.Dockerfile
+    volumes:
+      - './:/var/www/html:delegated'
+    ports:
+      - '8000:8000'
+    networks:
+      - 'network-laravel'
+    container_name: 'laravel-api-php-server'
+
+
+  phpfpm:
+    build:
+      context: .
+      dockerfile: config/docker/php-fpm.Dockerfile
+    volumes:
+      - './:/var/www/html:delegated'
+    restart: unless-stopped
+    networks:
+      - 'network-laravel'
+    container_name: 'laravel-api-php-fpm'
+
+  laravel-api:
+    build:
+      context: .
+      dockerfile: config/docker/nginx.Dockerfile
+    ports:
+      - '8000:8000'
+    volumes:
+      - './:/var/www/html:delegated'
+      - './storage/nginx:/var/log/nginx:delegated'
+    restart: unless-stopped
+    depends_on:
+      - phpfpm
+      - mysql
+    networks:
+      - 'network-laravel'
+    container_name: 'laravel-api-nginx'
+
+
+  laravel-api-slim:
+    build:
+      context: .
+      dockerfile: config/docker/nginx.Dockerfile
+    ports:
+      - '8000:8000'
+    volumes:
+      - './:/var/www/html:delegated'
+      - './storage/nginx:/var/log/nginx:delegated'
+    restart: unless-stopped
+    depends_on:
+      - phpfpm
+      - mysql
+    networks:
+      - 'network-laravel'
+    container_name: 'laravel-api-nginx-slim'
+
+networks:
+  network-laravel:
+
+
+
+volumes:
+  mysql_data:
+  composer_cache:
+  npm_cache:
